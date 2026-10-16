@@ -2,6 +2,8 @@
 
 A flying car dropped at a random height and attitude, landed by **Laya** (Ollaya's System One API). Laya reads plain-language flight reports, and its answers set which of the 8 thrusters fire and how hard.
 
+![Laya vs Jev landing the same drop](assets/landing.gif)
+
 ## Run
 
 1. Create `.env` next to `server.py`:

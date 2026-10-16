@@ -8,6 +8,9 @@ demo.sh
 web/index.html
 web/sort.html
 
+# Source recording (too big for git; assets/landing.gif is made from it)
+assets/*.mov
+
 # Dependencies and tool output
 node_modules/
 .playwright-mcp/

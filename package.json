@@ -1,0 +1,11 @@
+{
+  "name": "ollaya-lan",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "flight-test": "node car-test/flight-test.mjs"
+  },
+  "devDependencies": {
+    "three": "0.170.0"
+  }
+}

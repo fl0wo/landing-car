@@ -1,0 +1,14 @@
+# Secrets: the Ollaya URL and API key
+.env
+
+# Other demos and test scripts (not part of the landing car)
+ask.sh
+models.sh
+demo.sh
+web/index.html
+web/sort.html
+
+# Dependencies and tool output
+node_modules/
+.playwright-mcp/
+.DS_Store

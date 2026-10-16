@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flying Car</title>
+<link rel="icon" href="data:,">
+<style>
+  /* anatomy light theme: paper, four-tone shading, ink by tone hierarchy */
+  :root {
+    --page: #f2f2ef; --card: #fbfbfa; --text: #57575a; --strong: #18181a; --muted: #8c8c90;
+    --hi: #26262a; --mid: #8a8a8f; --lo: #b4b4b8; --faint: #d4d4d6; --track: #ececea;
+    --accent: #3e63dd; --good: #30a46c; --bad: #e5484d;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --lift: inset 0 1px 0 0 #ffffff, 0 0 0 1px #0000000f, 0 1px 1px -.5px #0000000a, 0 3px 3px -1.5px #0000000a,
+      0 6px 6px -3px #0000000a, 0 12px 12px -6px #0000000a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--page); color: var(--text);
+    font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  #stage { position: fixed; inset: 0; overflow: hidden; }
+  canvas#view { display: block; width: 100%; height: 100%; }
+  /* square recording mode: the whole figure in a centred square, panel docked on its right */
+  body.square #stage { inset: auto; left: 50%; top: 50%; width: min(100vw, 100vh); height: min(100vw, 100vh);
+    transform: translate(-50%, -50%); box-shadow: 0 0 0 1px #0000000f; }
+  body.square #side { width: 300px; gap: 12px; }
+  body.square .hint { display: none; }
+  body.square #title { max-width: 320px; }
+  body.square #banner { top: auto; bottom: 92px; }
+  .panel { position: absolute; background: var(--card); border-radius: 14px; box-shadow: var(--lift); padding: 12px 14px; }
+  #side { top: 12px; right: 12px; width: 340px; max-height: calc(100% - 24px); overflow: auto;
+    display: flex; flex-direction: column; gap: 14px; }
+  section + section { border-top: 1px solid var(--track); padding-top: 12px; }
+  h3 { margin: 0 0 8px; font: 600 10.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .kpi { border: 1px solid var(--track); border-radius: 9px; padding: 6px 8px; }
+  .kpi b { display: block; font: 500 17px/1.2 var(--mono); color: var(--strong); font-variant-numeric: tabular-nums; }
+  .kpi span { color: var(--muted); font-size: 11px; }
+  .q { margin-bottom: 10px; }
+  .q .rep { color: var(--strong); margin-bottom: 5px; min-height: 18px; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .opt { font-size: 11px; color: var(--muted); }
+  .opt .bar { height: 4px; border-radius: 2px; background: var(--track); margin-top: 3px; overflow: hidden; }
+  .opt .bar i { display: block; height: 100%; background: var(--lo); }
+  .opt.top { color: var(--strong); }
+  .opt.top .bar i { background: var(--hi); }
+  .thr { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; }
+  .rows { display: flex; flex-direction: column; gap: 3px; font: 11px/1.3 var(--mono); font-variant-numeric: tabular-nums; }
+  .row { display: grid; grid-template-columns: 36px 1fr 34px; gap: 6px; align-items: center; color: var(--strong); }
+  .row .bar { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+  .row .bar i { display: block; height: 100%; background: var(--accent); }
+  .row .g { grid-column: 2 / 4; color: var(--muted); font-size: 10px; margin-top: -2px; }
+  .controls { display: flex; gap: 6px; flex-wrap: wrap; }
+  button { border: 1px solid var(--faint); background: var(--card); color: var(--text); border-radius: 8px;
+    padding: 6px 10px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--mid); color: var(--strong); }
+  button.on { border-color: var(--hi); color: var(--strong); }
+  #flight { left: 12px; bottom: 12px; display: grid; grid-template-columns: repeat(5, auto); gap: 4px 20px; }
+  #flight div span { display: block; color: var(--muted); font: 10.5px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+  #flight div b { font: 500 20px/1.2 var(--mono); color: var(--strong); font-variant-numeric: tabular-nums; }
+  #banner { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); padding: 10px 18px; border-radius: 12px;
+    font-size: 15px; font-weight: 600; background: var(--card); box-shadow: var(--lift); display: none; }
+  #banner.ok { display: block; color: var(--good); }
+  #banner.bad { display: block; color: var(--bad); }
+  #title { left: 12px; top: 12px; max-width: 360px; }
+  #title .fig { font: 600 10.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #title b { display: block; margin-top: 6px; font-size: 15px; color: var(--strong); }
+  #title p { margin: 4px 0 0; color: var(--text); }
+  #err { color: var(--bad); display: none; margin-top: 6px; }
+  .muted { color: var(--muted); }
+  @media (max-width: 760px) {
+    #side { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 46vh; }
+    #flight { top: 12px; bottom: auto; left: 12px; right: 12px; grid-template-columns: repeat(5, 1fr); gap: 2px 8px; }
+    #flight div b { font-size: 13px; white-space: nowrap; }
+    #flight div span { font-size: 9.5px; }
+    #title { display: none; }
+  }
+</style>
+<script type="importmap">
+  { "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  } }
+</script>
+</head>
+<body>
+<div id="stage">
+<canvas id="view"></canvas>
+
+<div id="title" class="panel">
+  <span class="fig">Fig. 1 · isometric</span>
+  <b>Flying car · Laya pilot</b>
+  <p>Dropped at a random height and attitude. Laya reads three plain-language flight reports several times a
+    second and its answers set which of the 8 thrusters fire, how hard, and how the belly nozzles swivel.</p>
+  <div id="err"></div>
+</div>
+
+<div id="banner"></div>
+
+<div id="flight" class="panel">
+  <div><span>Altitude</span><b id="f-alt">–</b></div>
+  <div><span>Vertical</span><b id="f-vy">–</b></div>
+  <div><span>Tilt</span><b id="f-tilt">–</b></div>
+  <div><span>Drift</span><b id="f-drift">–</b></div>
+  <div><span>Time</span><b id="f-t">–</b></div>
+</div>
+
+<div id="side" class="panel">
+  <section>
+    <h3>Laya</h3>
+    <div class="kpis">
+      <div class="kpi"><b id="k-dps">–</b><span>decisions/s</span></div>
+      <div class="kpi"><b id="k-lat">–</b><span>latency ms</span></div>
+      <div class="kpi"><b id="k-age">–</b><span>answer age ms</span></div>
+      <div class="kpi"><b id="k-ok" style="color:var(--good)">0</b><span>landed</span></div>
+      <div class="kpi"><b id="k-bad" style="color:var(--bad)">0</b><span>crashed</span></div>
+      <div class="kpi"><b id="k-model" style="font-size:13px">…</b><span>model</span></div>
+    </div>
+  </section>
+  <section>
+    <h3>Reports → Laya's answers</h3>
+    <div id="questions"></div>
+  </section>
+  <section>
+    <h3>Thrusters</h3>
+    <div class="thr">
+      <svg id="topview" viewBox="-2.3 -2.9 4.6 5.8" width="120" height="150"></svg>
+      <div class="rows" id="rows"></div>
+    </div>
+  </section>
+  <section>
+    <div class="controls">
+      <button id="b-pause">⏸ Pause</button>
+      <button id="b-drop">⟳ New drop</button>
+      <button id="b-auto" class="on">Auto-drop</button>
+      <button id="b-sas" class="on" title="Stability augmentation: resists spinning, never levels the car on its own">Rate damper</button>
+      <button id="b-iso" class="on" title="Lock the camera to the 45° / 30° isometric view; switch off to orbit">Iso view</button>
+      <button id="b-square" title="Square frame for recording (also ?square in the URL)">Square</button>
+    </div>
+    <p class="muted hint" style="margin:8px 0 0">Scroll to zoom; switch Iso view off to orbit. The rate damper (on real aircraft: SAS)
+      only resists spin; switch it off to watch Laya fly alone.</p>
+  </section>
+</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createCar, spawn, step, lowestPoint, tiltDeg, THRUSTERS, BODY, nozzleQuat, SAFE } from './car/sim.js';
+import { reports, askLaya, fly, createMemory, remember, QUESTIONS, TUNE } from './car/pilot.js';
+
+const $ = id => document.getElementById(id);
+const DT = 1 / 240;
+
+// ---------- scene: anatomy light theme (paper, four-tone faces, ink outlines) ----------
+const INK = { hi: '#26262a', mid: '#8a8a8f', lo: '#b4b4b8', faint: '#d4d4d6' };
+const PAPER = '#fbfbfa', ACCENT = '#3e63dd';
+
+const renderer = new THREE.WebGLRenderer({ canvas: $('view'), antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;   // paper stays exactly paper
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#f2f2ef');
+
+// True isometric view, orthographic: azimuth 45°, elevation 30° (the anatomy default).
+const ISO = { az: THREE.MathUtils.degToRad(45), el: THREE.MathUtils.degToRad(30), dist: 400 };
+const isoOffset = () => new THREE.Vector3(Math.sin(ISO.az) * Math.cos(ISO.el), Math.sin(ISO.el), Math.cos(ISO.az) * Math.cos(ISO.el)).multiplyScalar(ISO.dist);
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 3000);
+camera.position.copy(isoOffset());
+let viewH = 18;   // world metres visible top to bottom; eased with altitude in the loop
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.495;
+
+// One key light from above, a little toward the viewer, so top and the two visible sides get distinct tones.
+const KEY = new THREE.Vector3(0.1, 0.8, 0.59).normalize();
+const sun = new THREE.DirectionalLight('#ffffff', Math.PI);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.radius = 6;
+Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, near: 1, far: 300 });
+scene.add(sun, sun.target);
+
+// Four shade tokens plus a white top, by facing: the toon ramp reproduces the kit's flat paper tones.
+const RAMP = ['dcdcd9', 'e5e5e2', 'ededea', 'f4f4f1', 'ffffff'];   // the token bytes, decoded as sRGB on the GPU
+const rampTex = new THREE.DataTexture(new Uint8Array(RAMP.flatMap(h => [0, 2, 4].map(k => parseInt(h.slice(k, k + 2), 16)).concat(255))), RAMP.length, 1);
+rampTex.colorSpace = THREE.SRGBColorSpace;
+rampTex.minFilter = rampTex.magFilter = THREE.NearestFilter;
+rampTex.needsUpdate = true;
+
+const paperMat = (color = '#ffffff') => new THREE.MeshToonMaterial({ color, gradientMap: rampTex, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+const lineMats = Object.fromEntries(Object.entries(INK).map(([k, c]) => [k, new THREE.LineBasicMaterial({ color: c })]));
+
+// Silhouettes for round parts: an inverted hull pushed out by about one screen pixel.
+const outlinePx = { value: 0.03 };
+const hullMats = {};
+function hullMat(tone) {
+  if (hullMats[tone]) return hullMats[tone];
+  const m = new THREE.MeshBasicMaterial({ color: INK[tone], side: THREE.BackSide });
+  m.onBeforeCompile = sh => {
+    sh.uniforms.uOutline = outlinePx;
+    sh.vertexShader = 'uniform float uOutline;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  transformed += normal * uOutline;');
+  };
+  return (hullMats[tone] = m);
+}
+// Ink a mesh: crease edges (depth-tested, so hidden lines stay hidden), plus a silhouette hull for round parts.
+function ink(mesh, tone = 'hi', { round = false, angle = 25 } = {}) {
+  mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, angle), lineMats[tone]));
+  if (round) mesh.add(new THREE.Mesh(mesh.geometry, hullMat(tone)));
+  return mesh;
+}
+
+function canvasTexture(size, draw) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+
+// Ground: plain paper, with a small grid only around the landing base that fades into the paper at its edge.
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshBasicMaterial({ color: '#f8f8f6' }));
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+function baseGrid(half, step, ink, y) {   // lines in 0.5 m pieces, each coloured by its distance from the pad centre
+  const paper = new THREE.Color('#f8f8f6'), col = new THREE.Color(ink), pos = [], cols = [];
+  const shade = (x, z) => { const k = THREE.MathUtils.smoothstep(Math.hypot(x, z), half * 0.45, half); return paper.clone().lerp(col, 1 - k); };
+  for (let i = -half; i <= half; i += step) for (let t = -half; t < half; t += 0.5) {
+    for (const [x0, z0, x1, z1] of [[i, t, i, t + 0.5], [t, i, t + 0.5, i]]) {
+      pos.push(x0, y, z0, x1, y, z1);
+      cols.push(...shade(x0, z0).toArray(), ...shade(x1, z1).toArray());
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  scene.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true })));
+}
+baseGrid(16, 1, INK.faint, 0.002);   // 1 m squares
+baseGrid(15, 5, INK.lo, 0.003);      // 5 m squares, one tone darker
+const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.ShadowMaterial({ color: '#3a3a30', opacity: 0.12 }));
+shadowCatcher.rotation.x = -Math.PI / 2; shadowCatcher.position.y = 0.006; shadowCatcher.receiveShadow = true;
+scene.add(shadowCatcher);
+
+// Landing pad: a paper slab with an ink rim, a ruler of ticks round the edge and an ink H.
+const padTex = canvasTexture(1024, (g, s) => {
+  const c = s / 2, R = s / 2 - 4;
+  g.fillStyle = '#ffffff'; g.beginPath(); g.arc(c, c, R, 0, 7); g.fill();
+  g.strokeStyle = INK.faint; g.lineWidth = 4; g.beginPath(); g.arc(c, c, R * 0.78, 0, 7); g.stroke();
+  g.lineWidth = 2; g.beginPath(); g.arc(c, c, R * 0.7, 0, 7); g.stroke();
+  for (let a = 0; a < 360; a += 5) {   // rim ruler: every 5°, majors every 30°, cardinals longest and darkest
+    const major = a % 30 === 0, card = a % 90 === 0, r0 = R * (card ? 0.84 : major ? 0.88 : 0.92);
+    g.strokeStyle = card ? INK.hi : major ? INK.mid : INK.lo; g.lineWidth = card ? 5 : major ? 3.5 : 2.5;
+    const t = THREE.MathUtils.degToRad(a);
+    g.beginPath(); g.moveTo(c + Math.cos(t) * r0, c + Math.sin(t) * r0); g.lineTo(c + Math.cos(t) * (R - 6), c + Math.sin(t) * (R - 6)); g.stroke();
+  }
+  g.fillStyle = INK.mid; g.font = '500 300px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('H', c, c + 14);   // the one engraved label
+});
+const padSlab = ink(new THREE.Mesh(new THREE.CylinderGeometry(6, 6.15, 0.14, 128), paperMat()), 'hi', { angle: 20 });
+padSlab.position.y = 0.07;
+scene.add(padSlab);
+const padTop = new THREE.Mesh(new THREE.CircleGeometry(6, 128), new THREE.MeshBasicMaterial({ map: padTex }));
+padTop.rotation.x = -Math.PI / 2; padTop.position.y = 0.142;
+scene.add(padTop);
+
+// Altitude ruler beside the pad: a post on a base plate, ticks every 5 m, majors every 10 m, every 50 m in hi ink.
+const pole = new THREE.Group();
+pole.add(ink(new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.24, 1.8).translate(0, 0.12, 0), paperMat()), 'mid'));
+for (const [x, z] of [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]]) {   // corner screws
+  const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 12), new THREE.MeshBasicMaterial({ color: INK.mid }));
+  screw.position.set(x, 0.255, z); pole.add(screw);
+}
+pole.add(ink(new THREE.Mesh(new THREE.BoxGeometry(0.28, 130, 0.28).translate(0, 65.24, 0), paperMat()), 'mid'));
+const tickPts = { lo: [], mid: [], hi: [] };
+for (let h = 5; h <= 130; h += 5) {
+  const tone = h % 50 === 0 ? 'hi' : h % 10 === 0 ? 'mid' : 'lo', len = tone === 'hi' ? 1.4 : tone === 'mid' ? 0.9 : 0.5;
+  const y = h + 0.24;
+  tickPts[tone].push(new THREE.Vector3(0.14, y, 0.14), new THREE.Vector3(0.14 + len, y, 0.14));   // on the +x face
+  tickPts[tone].push(new THREE.Vector3(0.14, y, 0.14), new THREE.Vector3(0.14, y, 0.14 + len));   // on the +z face
+}
+for (const [tone, pts] of Object.entries(tickPts)) pole.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), lineMats[tone]));
+pole.position.set(9, 0, -9);
+scene.add(pole);
+
+// Drop line + ground ring and a soft halo under the car, for depth
+const dropLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+  new THREE.LineDashedMaterial({ color: INK.mid, dashSize: 0.5, gapSize: 0.45 }));
+const ring = new THREE.Mesh(new THREE.RingGeometry(1.7, 1.78, 64), new THREE.MeshBasicMaterial({ color: INK.mid }));
+ring.rotation.x = -Math.PI / 2;
+const haloTex = canvasTexture(256, (g, s) => {
+  const r = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  r.addColorStop(0, 'rgba(138,138,128,1)'); r.addColorStop(0.55, 'rgba(138,138,128,0.35)'); r.addColorStop(1, 'rgba(138,138,128,0)');
+  g.fillStyle = r; g.fillRect(0, 0, s, s);
+});
+const halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: haloTex, transparent: true, opacity: 0.32, depthWrite: false }));
+halo.rotation.x = -Math.PI / 2;
+scene.add(dropLine, ring, halo);
+
+// ---------- car model (body frame matches the sim: nose -z, right +x, CoM at origin) ----------
+const mat = {
+  body: paperMat('#ffffff'),
+  seam: paperMat('#ffffff'),
+  glass: paperMat('#c3c6cc'),           // the cabin is a darker "cavity" set, still four-toned
+  dark: paperMat('#dadadd'),            // arms, rings, gear: structure
+  tyre: paperMat('#a3a3a8'),
+  nozzle: paperMat('#ececee'),
+  head: new THREE.MeshBasicMaterial({ color: INK.hi }),
+  tail: new THREE.MeshBasicMaterial({ color: INK.mid }),
+};
+const carGroup = new THREE.Group();
+scene.add(carGroup);
+function part(geo, m, x, y, z, tone, opts) {
+  const mesh = new THREE.Mesh(geo, m); mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  if (tone) ink(mesh, tone, opts);
+  carGroup.add(mesh); return mesh;
+}
+const by = BODY.y;
+part(new THREE.BoxGeometry(BODY.w, 0.55, BODY.l), mat.body, 0, by - 0.27, 0, 'hi');                // chassis
+part(new THREE.BoxGeometry(BODY.w * 0.86, 0.5, BODY.l * 0.5), mat.glass, 0, by + 0.25, 0.25, 'hi');  // cabin
+part(new THREE.BoxGeometry(BODY.w * 1.01, 0.08, BODY.l * 1.01), mat.seam, 0, by - 0.05, 0, 'faint'); // seam band
+part(new THREE.BoxGeometry(0.5, 0.1, 0.05), mat.head, -0.6, by - 0.2, -BODY.l / 2 - 0.01);
+part(new THREE.BoxGeometry(0.5, 0.1, 0.05), mat.head, 0.6, by - 0.2, -BODY.l / 2 - 0.01);
+part(new THREE.BoxGeometry(0.6, 0.1, 0.05), mat.tail, -0.55, by - 0.15, BODY.l / 2 + 0.01);
+part(new THREE.BoxGeometry(0.6, 0.1, 0.05), mat.tail, 0.55, by - 0.15, BODY.l / 2 + 0.01);
+for (const x of [-1, 1]) for (const z of [-1, 1]) {
+  const w = part(new THREE.CylinderGeometry(0.33, 0.33, 0.26, 32), mat.tyre, x * 0.98, -0.2, z * 1.45, 'hi', { round: true });
+  w.rotation.z = Math.PI / 2;
+  const hub = part(new THREE.CylinderGeometry(0.16, 0.16, 0.27, 24), mat.nozzle, x * 0.98, -0.2, z * 1.45, 'mid');
+  hub.rotation.z = Math.PI / 2;
+  const leg = part(new THREE.CylinderGeometry(0.04, 0.04, 0.5, 10), mat.dark, x * 0.8, -0.38, z * 1.6, 'mid', { round: true });
+  leg.rotation.z = x * 0.1;
+  part(new THREE.CylinderGeometry(0.12, 0.14, 0.05, 20), mat.dark, x * 0.8, -0.6, z * 1.6, 'mid');   // gear foot
+}
+
+// thrusters: each one is a mount at its position with a gimbal whose quaternion comes from the sim.
+// On paper the exhaust is the one accent: a saturated blue body with a pale core, normally blended.
+const flameMat = new THREE.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 0.55, depthWrite: false });
+const coreMat = new THREE.MeshBasicMaterial({ color: '#c9d6ff', transparent: true, opacity: 0.9, depthWrite: false });
+const THRUSTER_DRAW = 2;   // visual scale of the thruster pods and their exhaust
+const visuals = THRUSTERS.map(d => {
+  const spike = d.kind === 'spike', r = spike ? 0.13 : 0.17;
+  if (spike) {   // the spike: an arm from the body corner out to the pod
+    const from = new THREE.Vector3(Math.sign(d.pos.x) * BODY.w / 2 * 0.9, by + 0.05, d.pos.z * 0.98);
+    const len = from.distanceTo(d.pos);
+    const arm = part(new THREE.CylinderGeometry(0.05, 0.09, len, 16), mat.dark, 0, 0, 0, 'mid', { round: true });
+    arm.position.copy(from).lerp(d.pos, 0.5);
+    arm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.pos.clone().sub(from).normalize());
+  }
+  const mount = new THREE.Group(); mount.position.copy(d.pos); carGroup.add(mount);
+  mount.scale.setScalar(THRUSTER_DRAW);   // drawn larger so they read clearly; the physics is untouched
+  const ring = ink(new THREE.Mesh(new THREE.TorusGeometry(r + 0.06, 0.03, 10, 32), mat.dark), 'mid', { round: true, angle: 60 });   // silhouette only, no hatching
+  ring.rotation.x = Math.PI / 2; ring.castShadow = true; mount.add(ring);
+  const gimbal = new THREE.Group(); mount.add(gimbal);
+  const bellMat = mat.nozzle.clone(); bellMat.side = THREE.DoubleSide;
+  const bell = ink(new THREE.Mesh(new THREE.CylinderGeometry(r * 0.75, r, 0.32, 28, 1, true).translate(0, -0.12, 0), bellMat), 'hi');
+  bell.castShadow = true; gimbal.add(bell);
+  gimbal.add(ink(new THREE.Mesh(new THREE.SphereGeometry(r * 0.7, 20, 14), mat.dark), 'mid', { round: true }));
+  // exhaust leaves through -y (thrust pushes along +y)
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(r * 0.95, 1, 20, 1, true).rotateX(Math.PI).translate(0, -0.5, 0), flameMat);
+  const core = new THREE.Mesh(new THREE.ConeGeometry(r * 0.45, 1, 14, 1, true).rotateX(Math.PI).translate(0, -0.5, 0), coreMat);
+  flame.position.y = core.position.y = -0.28;
+  core.renderOrder = 2; flame.renderOrder = 1;
+  gimbal.add(flame, core);
+  return { gimbal, flame, core, len: spike ? 1.6 : 2.4 };
+});
+
+// ---------- state ----------
+const car = createCar();
+let mem = createMemory(), gen = 0, inFlight = 0, lastAsk = -1, paused = false, auto = true;
+let dropAt = null;
+const stats = { landed: 0, crashed: 0, decisions: [], latency: [], error: null };
+const latest = {};   // newest report text per question, for the panel
+
+function newDrop() {
+  spawn(car);
+  car.pad.set(0, 0, 0);
+  mem = createMemory(); gen++; lastAsk = -1; dropAt = null;
+  $('banner').className = '';
+  controls.target.copy(car.pos);
+  camera.position.copy(car.pos).add(isoOffset());
+}
+
+async function post(body) {
+  const res = await fetch('/api/systemone', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok || !j.answers) throw new Error(j.error || 'HTTP ' + res.status);
+  return j;
+}
+
+function decide() {
+  const g = gen, asked = car.t, rep = reports(car);
+  Object.assign(latest, rep);
+  inFlight++;
+  askLaya(rep, post, (k, p, ms) => {
+    if (g !== gen) return;
+    remember(mem, k, p, asked);
+    stats.latency.push(ms); if (stats.latency.length > 60) stats.latency.shift();
+  }).then(() => { stats.decisions.push(performance.now()); stats.error = null; })
+    .catch(err => { stats.error = String(err.message || err); })
+    .finally(() => { inFlight--; });
+}
+
+// ---------- panel ----------
+const OPTION_LABELS = {
+  roll: { left: 'left dips', right: 'right dips', even: 'level' },
+  pitch: { nose: 'nose dips', tail: 'tail dips', level: 'level' },
+  descent: { fast: 'brake harder', ok: 'hold', slow: 'ease off' },
+};
+$('questions').innerHTML = Object.keys(QUESTIONS).map(k => `
+  <div class="q" id="q-${k}">
+    <div class="rep">–</div>
+    <div class="opts">${Object.keys(QUESTIONS[k].criteria).map(o => `<div class="opt" data-o="${o}">${OPTION_LABELS[k][o]}<div class="bar"><i></i></div></div>`).join('')}</div>
+  </div>`).join('');
+
+const svgNS = 'http://www.w3.org/2000/svg';
+const topSvg = $('topview');
+topSvg.innerHTML = `<rect x="${-BODY.w / 2}" y="${-BODY.l / 2}" width="${BODY.w}" height="${BODY.l}" rx="0.35" fill="#ffffff" stroke="${INK.hi}" stroke-width="0.045"/>
+  <rect x="${-BODY.w * 0.43}" y="${-BODY.l * 0.2}" width="${BODY.w * 0.86}" height="${BODY.l * 0.5}" rx="0.25" fill="#dcdde0" stroke="${INK.hi}" stroke-width="0.035"/>
+  <path d="M -0.35 ${-BODY.l / 2 - 0.3} L 0 ${-BODY.l / 2 - 0.6} L 0.35 ${-BODY.l / 2 - 0.3}" fill="none" stroke="${INK.mid}" stroke-width="0.06" stroke-linecap="round" stroke-linejoin="round"/>
+  ${[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([x, z]) => `<circle cx="${x * (BODY.w / 2 - 0.2)}" cy="${z * (BODY.l / 2 - 0.2)}" r="0.05" fill="${INK.mid}"/>`).join('')}`;
+const dots = THRUSTERS.map(d => {
+  if (d.kind === 'spike') {
+    const l = document.createElementNS(svgNS, 'line');
+    Object.entries({ x1: Math.sign(d.pos.x) * BODY.w / 2, y1: d.pos.z, x2: d.pos.x, y2: d.pos.z, stroke: INK.mid, 'stroke-width': 0.07 }).forEach(([a, v]) => l.setAttribute(a, v));
+    topSvg.appendChild(l);
+  }
+  const c = document.createElementNS(svgNS, 'circle');
+  c.setAttribute('cx', d.pos.x); c.setAttribute('cy', d.pos.z); c.setAttribute('r', d.kind === 'spike' ? 0.26 : 0.3);
+  c.setAttribute('stroke', INK.hi); c.setAttribute('stroke-width', 0.045);
+  topSvg.appendChild(c);
+  return c;
+});
+$('rows').innerHTML = THRUSTERS.map((d, i) => `
+  <div class="row"><span>${d.id}</span><div class="bar"><i id="tb${i}"></i></div><span id="tp${i}">0%</span>
+  <span class="g" id="tg${i}"></span></div>`).join('');
+
+const deg = r => Math.round(THREE.MathUtils.radToDeg(r));
+function updatePanel() {
+  const nowMs = performance.now();
+  stats.decisions = stats.decisions.filter(t => nowMs - t < 2000);
+  $('k-dps').textContent = (stats.decisions.length / 2).toFixed(1);
+  const L = [...stats.latency].sort((a, b) => a - b);
+  $('k-lat').textContent = L.length ? Math.round(L[L.length >> 1]) : '–';
+  const ages = ['roll', 'pitch', 'descent'].filter(k => mem[k]).map(k => car.t - mem[k].asked);
+  $('k-age').textContent = ages.length && !car.landed ? Math.round(1000 * Math.max(...ages)) : '–';
+  $('k-ok').textContent = stats.landed;
+  $('k-bad').textContent = stats.crashed;
+  $('err').style.display = stats.error ? 'block' : 'none';
+  $('err').textContent = stats.error ? 'Laya request failed: ' + stats.error : '';
+
+  for (const k of Object.keys(QUESTIONS)) {
+    const el = $('q-' + k), p = mem[k]?.p;
+    el.querySelector('.rep').textContent = latest[k] ? '“' + latest[k] + '”' : '–';
+    const best = p ? Object.keys(p).reduce((a, b) => (p[a] > p[b] ? a : b)) : null;
+    for (const o of el.querySelectorAll('.opt')) {
+      const v = p ? p[o.dataset.o] : 0;
+      o.querySelector('i').style.width = Math.round(v * 100) + '%';
+      o.classList.toggle('top', o.dataset.o === best);
+    }
+  }
+  car.thr.forEach((s, i) => {
+    const pct = Math.round(s.level * 100);
+    $('tb' + i).style.width = pct + '%';
+    $('tp' + i).textContent = pct + '%';
+    $('tg' + i).textContent = `gimbal ${deg(s.a)}°, ${deg(s.b)}°`;
+    dots[i].setAttribute('fill', `rgba(62, 99, 221, ${0.06 + 0.94 * s.level})`);
+  });
+
+  const alt = Math.max(0, lowestPoint(car));
+  $('f-alt').textContent = alt.toFixed(1) + ' m';
+  $('f-vy').textContent = car.vel.y.toFixed(1) + ' m/s';
+  $('f-tilt').textContent = Math.round(tiltDeg(car)) + '°';
+  $('f-drift').textContent = Math.hypot(car.vel.x, car.vel.z).toFixed(1) + ' m/s';
+  $('f-t').textContent = car.t.toFixed(1) + ' s';
+}
+
+// ---------- controls ----------
+$('b-pause').onclick = () => { paused = !paused; $('b-pause').textContent = paused ? '▶ Resume' : '⏸ Pause'; };
+$('b-drop').onclick = newDrop;
+let isoLock = false;
+function setIso(on) {   // on by default: the camera holds the isometric angle and only zooms
+  isoLock = on;
+  controls.enableRotate = !on;
+  $('b-iso').classList.toggle('on', on);
+  if (on) { camera.zoom = 1; camera.position.copy(controls.target).add(isoOffset()); }   // the loop refits the frustum
+}
+$('b-iso').onclick = () => setIso(!isoLock);
+setIso(true);
+$('b-auto').onclick = () => { auto = !auto; $('b-auto').classList.toggle('on', auto); };
+const SAS_ON = TUNE.sas;
+$('b-sas').onclick = () => { TUNE.sas = TUNE.sas ? 0 : SAS_ON; $('b-sas').classList.toggle('on', !!TUNE.sas); };
+fetch('/api/config').then(r => r.json()).then(c => { $('k-model').textContent = c.model; }).catch(() => {});
+
+const stage = $('stage');
+let stageW = innerWidth, stageH = innerHeight;
+function fitCamera() {   // orthographic frustum from the eased view height and the stage shape
+  const square = document.body.classList.contains('square');
+  const vh = viewH * (square ? 1.3 : 1);   // the square's free area is narrower, so frame a little wider
+  const aspect = stageW / stageH, perPx = vh / (camera.zoom * stageH);
+  const narrow = stageW <= 760 && !square;
+  // Centre the car in the free area: above the panel on phones, left of the side panel otherwise.
+  const sideW = narrow ? 0 : $('side').offsetWidth + 12;
+  const cx = (sideW / 2) * perPx, cy = narrow ? -vh * 0.2 / camera.zoom : 0;   // the frustum centre isn't scaled by zoom
+  Object.assign(camera, { left: cx - vh * aspect / 2, right: cx + vh * aspect / 2, top: cy + vh / 2, bottom: cy - vh / 2 });
+  camera.updateProjectionMatrix();
+  outlinePx.value = perPx * 1.1;   // silhouettes stay about one pixel wide
+  $('banner').style.left = narrow ? '50%' : (stageW - sideW) / 2 + 'px';
+}
+function resize() {
+  stageW = stage.clientWidth; stageH = stage.clientHeight;
+  renderer.setSize(stageW, stageH, false);
+  fitCamera();
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+const setSquare = on => { document.body.classList.toggle('square', on); $('b-square').classList.toggle('on', on); };
+$('b-square').onclick = () => setSquare(!document.body.classList.contains('square'));
+setSquare(new URLSearchParams(location.search).has('square'));
+
+// ---------- loop ----------
+const _off = new THREE.Vector3();
+let last = performance.now(), panelAt = 0, acc = 0;
+newDrop();
+
+function frame(t) {
+  const dt = Math.min(0.05, (t - last) / 1000);
+  last = t;
+  if (!paused) {
+    if (!car.landed && inFlight < 3 && car.t - lastAsk >= 0.04) { lastAsk = car.t; decide(); }
+    fly(car, mem, car.t);
+    const wasLanded = !!car.landed;
+    for (acc += dt; acc >= DT; acc -= DT) step(car, DT);   // fixed 240 Hz steps, real time at any frame rate
+    if (car.landed && !wasLanded) {
+      const L = car.landed;
+      L.ok ? stats.landed++ : stats.crashed++;
+      $('banner').className = L.ok ? 'ok' : 'bad';
+      $('banner').textContent = L.ok
+        ? `✓ Landed at ${L.vertical.toFixed(1)} m/s, ${L.tilt.toFixed(0)}° tilt${L.onPad ? ', on the pad' : ''}`
+        : `✕ Crashed at ${L.vertical.toFixed(1)} m/s, ${L.tilt.toFixed(0)}° tilt (limits ${SAFE.vertical} m/s, ${SAFE.tilt}°)`;
+      dropAt = t + 3500;
+    }
+    if (dropAt && auto && t > dropAt) newDrop();
+  }
+
+  // car pose + thrusters
+  carGroup.position.copy(car.pos);
+  carGroup.quaternion.copy(car.q);
+  car.thr.forEach((s, i) => {
+    const v = visuals[i];
+    nozzleQuat(s.a, s.b, v.gimbal.quaternion);
+    const len = Math.max(0.001, s.level * v.len * (0.9 + Math.random() * 0.2));
+    v.flame.scale.set(1, len, 1); v.core.scale.set(1, len * 0.6, 1);
+    v.flame.visible = v.core.visible = s.level > 0.02;
+  });
+
+  // follow camera: move the orbit target with the car, keep the user's view offset
+  _off.copy(car.pos).sub(controls.target).multiplyScalar(Math.min(1, dt * 4));
+  controls.target.add(_off); camera.position.add(_off);
+  controls.update();
+  sun.position.copy(car.pos).addScaledVector(KEY, 80);
+  sun.target.position.copy(car.pos);
+  // auto-zoom: about 18 m of view near the ground, widening to about 50 m high up, so the pad comes into frame
+  const altNow = Math.max(0, lowestPoint(car));
+  viewH += (THREE.MathUtils.clamp(18 + 0.3 * altNow, 18, 50) - viewH) * Math.min(1, dt * 1.5);
+  fitCamera();
+
+  const footY = 0.16;   // just above the pad slab
+  dropLine.geometry.setFromPoints([car.pos.clone(), new THREE.Vector3(car.pos.x, footY, car.pos.z)]);
+  dropLine.computeLineDistances();
+  ring.position.set(car.pos.x, footY, car.pos.z);
+  dropLine.visible = ring.visible = !car.landed;
+  const haloSize = 6 + altNow * 0.12;
+  halo.position.set(car.pos.x, 0.008, car.pos.z); halo.scale.set(haloSize, haloSize, 1);
+  halo.material.opacity = 0.32 * THREE.MathUtils.clamp(1 - altNow / 90, 0.15, 1);
+
+  renderer.render(scene, camera);
+  if (t - panelAt > 100) { panelAt = t; updatePanel(); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

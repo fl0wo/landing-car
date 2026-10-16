@@ -1,0 +1,113 @@
+{
+ "roll": {
+  "The left side of the car is dipping down.": {
+   "left": 0.9178,
+   "right": 0.0268,
+   "even": 0.0554
+  },
+  "The car is level.": {
+   "left": 0.2578,
+   "right": 0.3002,
+   "even": 0.442
+  },
+  "The left side of the car is dipping down a lot.": {
+   "left": 0.9462,
+   "right": 0.0187,
+   "even": 0.035
+  },
+  "The right side of the car is dipping down.": {
+   "left": 0.0724,
+   "right": 0.8298,
+   "even": 0.0978
+  },
+  "The right side of the car is dipping down a lot.": {
+   "left": 0.0388,
+   "right": 0.8967,
+   "even": 0.0645
+  },
+  "The car is upside down and its left side is dipping down.": {
+   "left": 0.9066,
+   "right": 0.0305,
+   "even": 0.0629
+  },
+  "The car is upside down and its right side is dipping down.": {
+   "left": 0.1323,
+   "right": 0.6868,
+   "even": 0.1809
+  },
+  "The car is lying on its right side.": {
+   "left": 0.1592,
+   "right": 0.7164,
+   "even": 0.1244
+  },
+  "The car is lying on its left side.": {
+   "left": 0.9513,
+   "right": 0.0122,
+   "even": 0.0365
+  }
+ },
+ "pitch": {
+  "The nose of the car is dipping down a lot.": {
+   "nose": 0.9573,
+   "tail": 0.0072,
+   "level": 0.0355
+  },
+  "The nose of the car is dipping down.": {
+   "nose": 0.94,
+   "tail": 0.0107,
+   "level": 0.0493
+  },
+  "The car is level.": {
+   "nose": 0.0135,
+   "tail": 0.009,
+   "level": 0.9776
+  },
+  "The tail of the car is dipping down.": {
+   "nose": 0.0223,
+   "tail": 0.8936,
+   "level": 0.0841
+  },
+  "The car is upside down and its tail is dipping down.": {
+   "nose": 0.0109,
+   "tail": 0.9499,
+   "level": 0.0393
+  },
+  "The tail of the car is dipping down a lot.": {
+   "nose": 0.0084,
+   "tail": 0.946,
+   "level": 0.0456
+  },
+  "The car is upside down and its nose is dipping down.": {
+   "nose": 0.9785,
+   "tail": 0.0091,
+   "level": 0.0123
+  },
+  "The car is standing on its nose.": {
+   "nose": 0.9605,
+   "tail": 0.0106,
+   "level": 0.0289
+  }
+ },
+ "descent": {
+  "The car is falling too slowly.": {
+   "fast": 0.097,
+   "ok": 0.2189,
+   "slow": 0.6841
+  },
+  "The car is falling at a safe speed.": {
+   "fast": 0.3048,
+   "ok": 0.4112,
+   "slow": 0.284
+  },
+  "The car is falling a bit too fast.": {
+   "fast": 0.5365,
+   "ok": 0.2141,
+   "slow": 0.2494
+  },
+  "The car is falling much too fast.": {
+   "fast": 0.7886,
+   "ok": 0.0954,
+   "slow": 0.1161
+  }
+ }
+}

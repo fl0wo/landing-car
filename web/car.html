@@ -55,9 +55,6 @@
     padding: 6px 10px; font: inherit; cursor: pointer; }
   button:hover { border-color: var(--mid); color: var(--strong); }
   button.on { border-color: var(--hi); color: var(--strong); }
-  #flight { left: 12px; bottom: 12px; display: grid; grid-template-columns: repeat(5, auto); gap: 4px 20px; }
-  #flight div span { display: block; color: var(--muted); font: 10.5px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
-  #flight div b { font: 500 20px/1.2 var(--mono); color: var(--strong); font-variant-numeric: tabular-nums; }
   #banner { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); padding: 10px 18px; border-radius: 12px;
     font-size: 15px; font-weight: 600; background: var(--card); box-shadow: var(--lift); display: none; }
   #banner.ok { display: block; color: var(--good); }
@@ -68,11 +65,33 @@
   #title p { margin: 4px 0 0; color: var(--text); }
   #err { color: var(--bad); display: none; margin-top: 6px; }
   .muted { color: var(--muted); }
+  /* comparison card: one column per pilot */
+  .cmp { display: grid; gap: 5px 8px; align-items: center; }
+  .cmp .lbl { color: var(--muted); font-size: 11px; }
+  .cmp > b { font: 500 14px/1.2 var(--mono); color: var(--strong); font-variant-numeric: tabular-nums; }
+  .who { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .who i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .who b { color: var(--strong); font-size: 13px; }
+  .who small { width: 100%; color: var(--muted); font: 10.5px/1.2 var(--mono); }
+  .ans span { display: block; font: 11px/1.3 var(--mono); color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ans .bar { height: 4px; border-radius: 2px; background: var(--track); margin-top: 3px; overflow: hidden; }
+  .ans .bar i { display: block; height: 100%; }
+  #tops { display: grid; gap: 8px; }
+  #tops figure { margin: 0; text-align: center; }
+  #tops svg { width: 100%; max-width: 110px; height: auto; aspect-ratio: 4.6 / 5.8; }
+  #tops figcaption { font: 600 10.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; margin-top: 2px; }
+  #flight { left: 12px; bottom: 12px; display: grid; grid-template-columns: auto repeat(4, auto); gap: 2px 18px; align-items: baseline; }
+  #flight .h { color: var(--muted); font: 10.5px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+  #flight > b { font: 500 16px/1.25 var(--mono); color: var(--strong); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #flight .who { font-size: 12px; color: var(--strong); flex-wrap: nowrap; }
+  #banner.on { display: block; color: var(--strong); white-space: nowrap; }
+  #banner .sep { color: var(--faint); margin: 0 10px; }
+  code { font: 11px var(--mono); background: var(--track); padding: 0 3px; border-radius: 3px; }
   @media (max-width: 760px) {
     #side { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 46vh; }
-    #flight { top: 12px; bottom: auto; left: 12px; right: 12px; grid-template-columns: repeat(5, 1fr); gap: 2px 8px; }
-    #flight div b { font-size: 13px; white-space: nowrap; }
-    #flight div span { font-size: 9.5px; }
+    #flight { top: 12px; bottom: auto; left: 12px; right: 12px; gap: 2px 10px; }
+    #flight > b { font-size: 12px; }
+    #flight .h { font-size: 9px; }
     #title { display: none; }
   }
 </style>
@@ -89,44 +108,27 @@
 
 <div id="title" class="panel">
   <span class="fig">Fig. 1 · isometric</span>
-  <b>Flying car · Laya pilot</b>
-  <p>Dropped at a random height and attitude. Laya reads three plain-language flight reports several times a
-    second and its answers set which of the 8 thrusters fire, how hard, and how the belly nozzles swivel.</p>
+  <b id="title-name">Flying car</b>
+  <p id="title-text">Loading pilots…</p>
   <div id="err"></div>
 </div>
 
 <div id="banner"></div>
 
-<div id="flight" class="panel">
-  <div><span>Altitude</span><b id="f-alt">–</b></div>
-  <div><span>Vertical</span><b id="f-vy">–</b></div>
-  <div><span>Tilt</span><b id="f-tilt">–</b></div>
-  <div><span>Drift</span><b id="f-drift">–</b></div>
-  <div><span>Time</span><b id="f-t">–</b></div>
-</div>
+<div id="flight" class="panel"></div>
 
 <div id="side" class="panel">
   <section>
-    <h3>Laya</h3>
-    <div class="kpis">
-      <div class="kpi"><b id="k-dps">–</b><span>decisions/s</span></div>
-      <div class="kpi"><b id="k-lat">–</b><span>latency ms</span></div>
-      <div class="kpi"><b id="k-age">–</b><span>answer age ms</span></div>
-      <div class="kpi"><b id="k-ok" style="color:var(--good)">0</b><span>landed</span></div>
-      <div class="kpi"><b id="k-bad" style="color:var(--bad)">0</b><span>crashed</span></div>
-      <div class="kpi"><b id="k-model" style="font-size:13px">…</b><span>model</span></div>
-    </div>
+    <h3>Pilots</h3>
+    <div id="cmp"></div>
   </section>
   <section>
-    <h3>Reports → Laya's answers</h3>
-    <div id="questions"></div>
+    <h3>Reports → answers</h3>
+    <div id="answers"></div>
   </section>
   <section>
     <h3>Thrusters</h3>
-    <div class="thr">
-      <svg id="topview" viewBox="-2.3 -2.9 4.6 5.8" width="120" height="150"></svg>
-      <div class="rows" id="rows"></div>
-    </div>
+    <div id="tops"></div>
   </section>
   <section>
     <div class="controls">
@@ -138,7 +140,7 @@
       <button id="b-square" title="Square frame for recording (also ?square in the URL)">Square</button>
     </div>
     <p class="muted hint" style="margin:8px 0 0">Scroll to zoom; switch Iso view off to orbit. The rate damper (on real aircraft: SAS)
-      only resists spin; switch it off to watch Laya fly alone.</p>
+      only resists spin; switch it off to watch the pilots fly alone. Pick pilots with <code>?pilots=ollaya,jev</code>.</p>
   </section>
 </div>
 </div>
@@ -154,7 +156,7 @@ const DT = 1 / 240;
 
 // ---------- scene: anatomy light theme (paper, four-tone faces, ink outlines) ----------
 const INK = { hi: '#26262a', mid: '#8a8a8f', lo: '#b4b4b8', faint: '#d4d4d6' };
-const PAPER = '#fbfbfa', ACCENT = '#3e63dd';
+const PAPER = '#fbfbfa';
 
 const renderer = new THREE.WebGLRenderer({ canvas: $('view'), antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -180,7 +182,7 @@ const sun = new THREE.DirectionalLight('#ffffff', Math.PI);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.radius = 6;
-Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, near: 1, far: 300 });
+Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 300 });
 scene.add(sun, sun.target);
 
 // Four shade tokens plus a white top, by facing: the toon ramp reproduces the kit's flat paper tones.
@@ -284,24 +286,16 @@ for (const [tone, pts] of Object.entries(tickPts)) pole.add(new THREE.LineSegmen
 pole.position.set(9, 0, -9);
 scene.add(pole);
 
-// Drop line + ground ring and a soft halo under the car, for depth
-const dropLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
-  new THREE.LineDashedMaterial({ color: INK.mid, dashSize: 0.5, gapSize: 0.45 }));
-const ring = new THREE.Mesh(new THREE.RingGeometry(1.7, 1.78, 64), new THREE.MeshBasicMaterial({ color: INK.mid }));
-ring.rotation.x = -Math.PI / 2;
+// Soft halo under each car, for depth (each car also gets a drop line and ground ring, built with it)
 const haloTex = canvasTexture(256, (g, s) => {
   const r = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
   r.addColorStop(0, 'rgba(138,138,128,1)'); r.addColorStop(0.55, 'rgba(138,138,128,0.35)'); r.addColorStop(1, 'rgba(138,138,128,0)');
   g.fillStyle = r; g.fillRect(0, 0, s, s);
 });
-const halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: haloTex, transparent: true, opacity: 0.32, depthWrite: false }));
-halo.rotation.x = -Math.PI / 2;
-scene.add(dropLine, ring, halo);
 
-// ---------- car model (body frame matches the sim: nose -z, right +x, CoM at origin) ----------
+// ---------- car models: one per pilot, identical paper car, told apart by colour ----------
 const mat = {
   body: paperMat('#ffffff'),
-  seam: paperMat('#ffffff'),
   glass: paperMat('#c3c6cc'),           // the cabin is a darker "cavity" set, still four-toned
   dark: paperMat('#dadadd'),            // arms, rings, gear: structure
   tyre: paperMat('#a3a3a8'),
@@ -309,98 +303,140 @@ const mat = {
   head: new THREE.MeshBasicMaterial({ color: INK.hi }),
   tail: new THREE.MeshBasicMaterial({ color: INK.mid }),
 };
-const carGroup = new THREE.Group();
-scene.add(carGroup);
-function part(geo, m, x, y, z, tone, opts) {
-  const mesh = new THREE.Mesh(geo, m); mesh.position.set(x, y, z);
-  mesh.castShadow = true;
-  if (tone) ink(mesh, tone, opts);
-  carGroup.add(mesh); return mesh;
-}
-const by = BODY.y;
-part(new THREE.BoxGeometry(BODY.w, 0.55, BODY.l), mat.body, 0, by - 0.27, 0, 'hi');                // chassis
-part(new THREE.BoxGeometry(BODY.w * 0.86, 0.5, BODY.l * 0.5), mat.glass, 0, by + 0.25, 0.25, 'hi');  // cabin
-part(new THREE.BoxGeometry(BODY.w * 1.01, 0.08, BODY.l * 1.01), mat.seam, 0, by - 0.05, 0, 'faint'); // seam band
-part(new THREE.BoxGeometry(0.5, 0.1, 0.05), mat.head, -0.6, by - 0.2, -BODY.l / 2 - 0.01);
-part(new THREE.BoxGeometry(0.5, 0.1, 0.05), mat.head, 0.6, by - 0.2, -BODY.l / 2 - 0.01);
-part(new THREE.BoxGeometry(0.6, 0.1, 0.05), mat.tail, -0.55, by - 0.15, BODY.l / 2 + 0.01);
-part(new THREE.BoxGeometry(0.6, 0.1, 0.05), mat.tail, 0.55, by - 0.15, BODY.l / 2 + 0.01);
-for (const x of [-1, 1]) for (const z of [-1, 1]) {
-  const w = part(new THREE.CylinderGeometry(0.33, 0.33, 0.26, 32), mat.tyre, x * 0.98, -0.2, z * 1.45, 'hi', { round: true });
-  w.rotation.z = Math.PI / 2;
-  const hub = part(new THREE.CylinderGeometry(0.16, 0.16, 0.27, 24), mat.nozzle, x * 0.98, -0.2, z * 1.45, 'mid');
-  hub.rotation.z = Math.PI / 2;
-  const leg = part(new THREE.CylinderGeometry(0.04, 0.04, 0.5, 10), mat.dark, x * 0.8, -0.38, z * 1.6, 'mid', { round: true });
-  leg.rotation.z = x * 0.1;
-  part(new THREE.CylinderGeometry(0.12, 0.14, 0.05, 20), mat.dark, x * 0.8, -0.6, z * 1.6, 'mid');   // gear foot
-}
-
-// thrusters: each one is a mount at its position with a gimbal whose quaternion comes from the sim.
-// On paper the exhaust is the one accent: a saturated blue body with a pale core, normally blended.
-const flameMat = new THREE.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 0.55, depthWrite: false });
-const coreMat = new THREE.MeshBasicMaterial({ color: '#c9d6ff', transparent: true, opacity: 0.9, depthWrite: false });
+// Each pilot's accent: exhaust body, pale exhaust core. Laya keeps the original blue.
+const PILOT_COLOURS = [['#3e63dd', '#c9d6ff'], ['#8e4ec6', '#e3ccf4'], ['#e5484d', '#ffd1d3'], ['#30a46c', '#c4ebd6']];
 const THRUSTER_DRAW = 2;   // visual scale of the thruster pods and their exhaust
-const visuals = THRUSTERS.map(d => {
-  const spike = d.kind === 'spike', r = spike ? 0.13 : 0.17;
-  if (spike) {   // the spike: an arm from the body corner out to the pod
-    const from = new THREE.Vector3(Math.sign(d.pos.x) * BODY.w / 2 * 0.9, by + 0.05, d.pos.z * 0.98);
-    const len = from.distanceTo(d.pos);
-    const arm = part(new THREE.CylinderGeometry(0.05, 0.09, len, 16), mat.dark, 0, 0, 0, 'mid', { round: true });
-    arm.position.copy(from).lerp(d.pos, 0.5);
-    arm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.pos.clone().sub(from).normalize());
-  }
-  const mount = new THREE.Group(); mount.position.copy(d.pos); carGroup.add(mount);
-  mount.scale.setScalar(THRUSTER_DRAW);   // drawn larger so they read clearly; the physics is untouched
-  const ring = ink(new THREE.Mesh(new THREE.TorusGeometry(r + 0.06, 0.03, 10, 32), mat.dark), 'mid', { round: true, angle: 60 });   // silhouette only, no hatching
-  ring.rotation.x = Math.PI / 2; ring.castShadow = true; mount.add(ring);
-  const gimbal = new THREE.Group(); mount.add(gimbal);
-  const bellMat = mat.nozzle.clone(); bellMat.side = THREE.DoubleSide;
-  const bell = ink(new THREE.Mesh(new THREE.CylinderGeometry(r * 0.75, r, 0.32, 28, 1, true).translate(0, -0.12, 0), bellMat), 'hi');
-  bell.castShadow = true; gimbal.add(bell);
-  gimbal.add(ink(new THREE.Mesh(new THREE.SphereGeometry(r * 0.7, 20, 14), mat.dark), 'mid', { round: true }));
-  // exhaust leaves through -y (thrust pushes along +y)
-  const flame = new THREE.Mesh(new THREE.ConeGeometry(r * 0.95, 1, 20, 1, true).rotateX(Math.PI).translate(0, -0.5, 0), flameMat);
-  const core = new THREE.Mesh(new THREE.ConeGeometry(r * 0.45, 1, 14, 1, true).rotateX(Math.PI).translate(0, -0.5, 0), coreMat);
-  flame.position.y = core.position.y = -0.28;
-  core.renderOrder = 2; flame.renderOrder = 1;
-  gimbal.add(flame, core);
-  return { gimbal, flame, core, len: spike ? 1.6 : 2.4 };
-});
+const by = BODY.y;
 
-// ---------- state ----------
-const car = createCar();
-let mem = createMemory(), gen = 0, inFlight = 0, lastAsk = -1, paused = false, auto = true;
-let dropAt = null;
-const stats = { landed: 0, crashed: 0, decisions: [], latency: [], error: null };
-const latest = {};   // newest report text per question, for the panel
+function buildCar(colour, coreColour) {
+  const group = new THREE.Group();
+  scene.add(group);
+  const part = (geo, m, x, y, z, tone, opts) => {
+    const mesh = new THREE.Mesh(geo, m); mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    if (tone) ink(mesh, tone, opts);
+    group.add(mesh); return mesh;
+  };
+  part(new THREE.BoxGeometry(BODY.w, 0.55, BODY.l), mat.body, 0, by - 0.27, 0, 'hi');                     // chassis
+  part(new THREE.BoxGeometry(BODY.w * 0.86, 0.5, BODY.l * 0.5), mat.glass, 0, by + 0.25, 0.25, 'hi');       // cabin
+  part(new THREE.BoxGeometry(BODY.w * 1.01, 0.08, BODY.l * 1.01), paperMat(colour), 0, by - 0.05, 0, 'faint'); // pilot stripe
+  part(new THREE.BoxGeometry(0.5, 0.1, 0.05), mat.head, -0.6, by - 0.2, -BODY.l / 2 - 0.01);
+  part(new THREE.BoxGeometry(0.5, 0.1, 0.05), mat.head, 0.6, by - 0.2, -BODY.l / 2 - 0.01);
+  part(new THREE.BoxGeometry(0.6, 0.1, 0.05), mat.tail, -0.55, by - 0.15, BODY.l / 2 + 0.01);
+  part(new THREE.BoxGeometry(0.6, 0.1, 0.05), mat.tail, 0.55, by - 0.15, BODY.l / 2 + 0.01);
+  for (const x of [-1, 1]) for (const z of [-1, 1]) {
+    const w = part(new THREE.CylinderGeometry(0.33, 0.33, 0.26, 32), mat.tyre, x * 0.98, -0.2, z * 1.45, 'hi', { round: true });
+    w.rotation.z = Math.PI / 2;
+    const hub = part(new THREE.CylinderGeometry(0.16, 0.16, 0.27, 24), mat.nozzle, x * 0.98, -0.2, z * 1.45, 'mid');
+    hub.rotation.z = Math.PI / 2;
+    const leg = part(new THREE.CylinderGeometry(0.04, 0.04, 0.5, 10), mat.dark, x * 0.8, -0.38, z * 1.6, 'mid', { round: true });
+    leg.rotation.z = x * 0.1;
+    part(new THREE.CylinderGeometry(0.12, 0.14, 0.05, 20), mat.dark, x * 0.8, -0.6, z * 1.6, 'mid');   // gear foot
+  }
+
+  // thrusters: each one is a mount at its position with a gimbal whose quaternion comes from the sim.
+  // On paper the exhaust is the pilot's accent: a saturated body with a pale core, normally blended.
+  const flameMat = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0.55, depthWrite: false });
+  const coreMat = new THREE.MeshBasicMaterial({ color: coreColour, transparent: true, opacity: 0.9, depthWrite: false });
+  const visuals = THRUSTERS.map(d => {
+    const spike = d.kind === 'spike', r = spike ? 0.13 : 0.17;
+    if (spike) {   // the spike: an arm from the body corner out to the pod
+      const from = new THREE.Vector3(Math.sign(d.pos.x) * BODY.w / 2 * 0.9, by + 0.05, d.pos.z * 0.98);
+      const len = from.distanceTo(d.pos);
+      const arm = part(new THREE.CylinderGeometry(0.05, 0.09, len, 16), mat.dark, 0, 0, 0, 'mid', { round: true });
+      arm.position.copy(from).lerp(d.pos, 0.5);
+      arm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.pos.clone().sub(from).normalize());
+    }
+    const mount = new THREE.Group(); mount.position.copy(d.pos); group.add(mount);
+    mount.scale.setScalar(THRUSTER_DRAW);   // drawn larger so they read clearly; the physics is untouched
+    const ring = ink(new THREE.Mesh(new THREE.TorusGeometry(r + 0.06, 0.03, 10, 32), mat.dark), 'mid', { round: true, angle: 60 });   // silhouette only, no hatching
+    ring.rotation.x = Math.PI / 2; ring.castShadow = true; mount.add(ring);
+    const gimbal = new THREE.Group(); mount.add(gimbal);
+    const bellMat = mat.nozzle.clone(); bellMat.side = THREE.DoubleSide;
+    const bell = ink(new THREE.Mesh(new THREE.CylinderGeometry(r * 0.75, r, 0.32, 28, 1, true).translate(0, -0.12, 0), bellMat), 'hi');
+    bell.castShadow = true; gimbal.add(bell);
+    gimbal.add(ink(new THREE.Mesh(new THREE.SphereGeometry(r * 0.7, 20, 14), mat.dark), 'mid', { round: true }));
+    // exhaust leaves through -y (thrust pushes along +y)
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(r * 0.95, 1, 20, 1, true).rotateX(Math.PI).translate(0, -0.5, 0), flameMat);
+    const core = new THREE.Mesh(new THREE.ConeGeometry(r * 0.45, 1, 14, 1, true).rotateX(Math.PI).translate(0, -0.5, 0), coreMat);
+    flame.position.y = core.position.y = -0.28;
+    core.renderOrder = 2; flame.renderOrder = 1;
+    gimbal.add(flame, core);
+    return { gimbal, flame, core, len: spike ? 1.6 : 2.4 };
+  });
+
+  // drop line, ground ring and halo in the pilot's colour
+  const dropLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+    new THREE.LineDashedMaterial({ color: colour, dashSize: 0.5, gapSize: 0.45 }));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.7, 1.8, 64), new THREE.MeshBasicMaterial({ color: colour }));
+  ring.rotation.x = -Math.PI / 2;
+  const halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: haloTex, transparent: true, opacity: 0.32, depthWrite: false }));
+  halo.rotation.x = -Math.PI / 2;
+  scene.add(dropLine, ring, halo);
+  return { group, visuals, dropLine, ring, halo };
+}
+
+// ---------- flights: one car per pilot, all given the same drop ----------
+const flights = [];
+let paused = false, auto = true, dropAt = null, roundStart = 0;
+const ROUND_TIMEOUT = 120000;  // ms: start a new drop even if a car never lands (Jev can take over a minute)
+
+function makeFlight(pilot, i, n) {
+  const [colour, core] = PILOT_COLOURS[i % PILOT_COLOURS.length];
+  return {
+    pilot, colour, car: createCar(), mem: createMemory(), gen: 0, inFlight: 0, lastAsk: -1,
+    backoff: 0, backoffUntil: 0, latest: {}, model: buildCar(colour, core),
+    drawOffset: (i - (n - 1) / 2) * 0.1,   // m, render only: keeps twin cars from z-fighting while they overlap
+    stats: { landed: 0, crashed: 0, decisions: [], latency: [], errors: 0, error: null, last: null },
+  };
+}
 
 function newDrop() {
-  spawn(car);
-  car.pad.set(0, 0, 0);
-  mem = createMemory(); gen++; lastAsk = -1; dropAt = null;
+  const src = flights[0].car;
+  spawn(src);   // one random drop, copied to every car so the pilot is the only difference
+  for (const f of flights) {
+    if (f.car !== src) {
+      spawn(f.car);
+      for (const k of ['pos', 'vel', 'q', 'w']) f.car[k].copy(src[k]);
+    }
+    f.car.pad.set(0, 0, 0);
+    f.mem = createMemory(); f.gen++; f.lastAsk = -1; f.backoff = 0; f.backoffUntil = 0; f.latest = {};
+  }
+  dropAt = null; roundStart = performance.now();
   $('banner').className = '';
-  controls.target.copy(car.pos);
-  camera.position.copy(car.pos).add(isoOffset());
+  controls.target.copy(src.pos);
+  camera.position.copy(src.pos).add(isoOffset());
 }
 
-async function post(body) {
-  const res = await fetch('/api/systemone', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+// Each pilot posts to its own local port: the browser's 6-connections-per-host limit would
+// otherwise make a fast pilot queue behind a slow one.
+const pilotUrl = p => `${location.protocol}//${location.hostname}:${p.port || location.port}/api/systemone?pilot=${encodeURIComponent(p.id)}`;
+async function post(body, pilot) {
+  const res = await fetch(pilotUrl(pilot),
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const j = await res.json().catch(() => ({}));
-  if (!res.ok || !j.answers) throw new Error(j.error || 'HTTP ' + res.status);
+  if (!res.ok || !j.answers) { const e = new Error(j.error?.message || j.error || 'HTTP ' + res.status); e.status = res.status; throw e; }
   return j;
 }
 
-function decide() {
-  const g = gen, asked = car.t, rep = reports(car);
-  Object.assign(latest, rep);
-  inFlight++;
-  askLaya(rep, post, (k, p, ms) => {
-    if (g !== gen) return;
-    remember(mem, k, p, asked);
-    stats.latency.push(ms); if (stats.latency.length > 60) stats.latency.shift();
-  }).then(() => { stats.decisions.push(performance.now()); stats.error = null; })
-    .catch(err => { stats.error = String(err.message || err); })
-    .finally(() => { inFlight--; });
+function decide(f) {
+  const g = f.gen, asked = f.car.t, rep = reports(f.car);
+  Object.assign(f.latest, rep);
+  f.inFlight++;
+  askLaya(rep, body => post(body, f.pilot), (k, p, ms) => {
+    if (g !== f.gen) return;
+    remember(f.mem, k, p, asked);
+    f.stats.latency.push(ms); if (f.stats.latency.length > 60) f.stats.latency.shift();
+  }).then(() => { f.stats.decisions.push(performance.now()); f.stats.error = null; f.backoff = 0; })
+    .catch(err => {
+      f.stats.error = String(err.message || err);
+      if (err.status === 429 || err.status === 529) {   // rate limited / overloaded: back off this pilot, 1 s doubling to 4 s
+        f.stats.errors++;
+        f.backoff = Math.min(4000, Math.max(1000, f.backoff * 2));
+        f.backoffUntil = performance.now() + f.backoff;
+      }
+    })
+    .finally(() => { f.inFlight--; });
 }
 
 // ---------- panel ----------
@@ -409,77 +445,102 @@ const OPTION_LABELS = {
   pitch: { nose: 'nose dips', tail: 'tail dips', level: 'level' },
   descent: { fast: 'brake harder', ok: 'hold', slow: 'ease off' },
 };
-$('questions').innerHTML = Object.keys(QUESTIONS).map(k => `
-  <div class="q" id="q-${k}">
-    <div class="rep">–</div>
-    <div class="opts">${Object.keys(QUESTIONS[k].criteria).map(o => `<div class="opt" data-o="${o}">${OPTION_LABELS[k][o]}<div class="bar"><i></i></div></div>`).join('')}</div>
-  </div>`).join('');
-
+const QUESTION_LABELS = { roll: 'Side', pitch: 'End', descent: 'Descent' };
+const KPIS = [['dps', 'decisions/s'], ['lat', 'latency ms'], ['age', 'answer age ms'], ['ok', 'landed'], ['bad', 'crashed'],
+  ['last', 'last touchdown'], ['err', 'rate-limit hits']];
 const svgNS = 'http://www.w3.org/2000/svg';
-const topSvg = $('topview');
-topSvg.innerHTML = `<rect x="${-BODY.w / 2}" y="${-BODY.l / 2}" width="${BODY.w}" height="${BODY.l}" rx="0.35" fill="#ffffff" stroke="${INK.hi}" stroke-width="0.045"/>
-  <rect x="${-BODY.w * 0.43}" y="${-BODY.l * 0.2}" width="${BODY.w * 0.86}" height="${BODY.l * 0.5}" rx="0.25" fill="#dcdde0" stroke="${INK.hi}" stroke-width="0.035"/>
-  <path d="M -0.35 ${-BODY.l / 2 - 0.3} L 0 ${-BODY.l / 2 - 0.6} L 0.35 ${-BODY.l / 2 - 0.3}" fill="none" stroke="${INK.mid}" stroke-width="0.06" stroke-linecap="round" stroke-linejoin="round"/>
-  ${[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([x, z]) => `<circle cx="${x * (BODY.w / 2 - 0.2)}" cy="${z * (BODY.l / 2 - 0.2)}" r="0.05" fill="${INK.mid}"/>`).join('')}`;
-const dots = THRUSTERS.map(d => {
-  if (d.kind === 'spike') {
-    const l = document.createElementNS(svgNS, 'line');
-    Object.entries({ x1: Math.sign(d.pos.x) * BODY.w / 2, y1: d.pos.z, x2: d.pos.x, y2: d.pos.z, stroke: INK.mid, 'stroke-width': 0.07 }).forEach(([a, v]) => l.setAttribute(a, v));
-    topSvg.appendChild(l);
-  }
-  const c = document.createElementNS(svgNS, 'circle');
-  c.setAttribute('cx', d.pos.x); c.setAttribute('cy', d.pos.z); c.setAttribute('r', d.kind === 'spike' ? 0.26 : 0.3);
-  c.setAttribute('stroke', INK.hi); c.setAttribute('stroke-width', 0.045);
-  topSvg.appendChild(c);
-  return c;
-});
-$('rows').innerHTML = THRUSTERS.map((d, i) => `
-  <div class="row"><span>${d.id}</span><div class="bar"><i id="tb${i}"></i></div><span id="tp${i}">0%</span>
-  <span class="g" id="tg${i}"></span></div>`).join('');
+const rgba = (hex, a) => { const c = new THREE.Color(hex); return `rgba(${Math.round(c.r * 255)}, ${Math.round(c.g * 255)}, ${Math.round(c.b * 255)}, ${a})`; };
+const best = p => Object.keys(p).reduce((a, b) => (p[a] > p[b] ? a : b));
 
-const deg = r => Math.round(THREE.MathUtils.radToDeg(r));
+function topView(svg, colour) {   // the car from above; the 8 thrusters fill with the pilot's colour by intensity
+  svg.innerHTML = `<rect x="${-BODY.w / 2}" y="${-BODY.l / 2}" width="${BODY.w}" height="${BODY.l}" rx="0.35" fill="#ffffff" stroke="${INK.hi}" stroke-width="0.045"/>
+    <rect x="${-BODY.w * 0.43}" y="${-BODY.l * 0.2}" width="${BODY.w * 0.86}" height="${BODY.l * 0.5}" rx="0.25" fill="#dcdde0" stroke="${INK.hi}" stroke-width="0.035"/>
+    <path d="M -0.35 ${-BODY.l / 2 - 0.3} L 0 ${-BODY.l / 2 - 0.6} L 0.35 ${-BODY.l / 2 - 0.3}" fill="none" stroke="${colour}" stroke-width="0.07" stroke-linecap="round" stroke-linejoin="round"/>
+    ${[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([x, z]) => `<circle cx="${x * (BODY.w / 2 - 0.2)}" cy="${z * (BODY.l / 2 - 0.2)}" r="0.05" fill="${INK.mid}"/>`).join('')}`;
+  return THRUSTERS.map(d => {
+    if (d.kind === 'spike') {
+      const l = document.createElementNS(svgNS, 'line');
+      Object.entries({ x1: Math.sign(d.pos.x) * BODY.w / 2, y1: d.pos.z, x2: d.pos.x, y2: d.pos.z, stroke: INK.mid, 'stroke-width': 0.07 }).forEach(([a, v]) => l.setAttribute(a, v));
+      svg.appendChild(l);
+    }
+    const c = document.createElementNS(svgNS, 'circle');
+    c.setAttribute('cx', d.pos.x); c.setAttribute('cy', d.pos.z); c.setAttribute('r', d.kind === 'spike' ? 0.26 : 0.3);
+    c.setAttribute('stroke', INK.hi); c.setAttribute('stroke-width', 0.045);
+    svg.appendChild(c);
+    return c;
+  });
+}
+
+function buildPanel() {
+  const n = flights.length, cols = `grid-template-columns: 86px repeat(${n}, 1fr)`;
+  const head = flights.map(f => `<div class="who"><i style="background:${f.colour}"></i><b>${f.pilot.name}</b><small>${f.pilot.model}</small></div>`).join('');
+  $('cmp').innerHTML = `<div class="cmp" style="${cols}"><span></span>${head}
+    ${KPIS.map(([k, label]) => `<span class="lbl">${label}</span>${flights.map((_, i) => `<b id="k-${k}-${i}">–</b>`).join('')}`).join('')}</div>`;
+  $('answers').innerHTML = `<div class="cmp" style="${cols}">
+    ${Object.keys(QUESTIONS).map(k => `<span class="lbl">${QUESTION_LABELS[k]}</span>${flights.map((f, i) => `
+      <div class="ans" id="a-${k}-${i}"><span>–</span><div class="bar"><i style="background:${f.colour}"></i></div></div>`).join('')}`).join('')}</div>`;
+  $('tops').style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+  $('tops').innerHTML = flights.map((f, i) => `<figure><svg id="tv-${i}" viewBox="-2.3 -2.9 4.6 5.8"></svg><figcaption style="color:${f.colour}">${f.pilot.name}</figcaption></figure>`).join('');
+  flights.forEach((f, i) => { f.dots = topView($('tv-' + i), f.colour); });
+  $('flight').innerHTML = `<span></span><span class="h">Altitude</span><span class="h">Vertical</span><span class="h">Tilt</span><span class="h">Drift</span>
+    ${flights.map((f, i) => `<span class="who"><i style="background:${f.colour}"></i>${f.pilot.name}</span>
+      <b id="f-alt-${i}">–</b><b id="f-vy-${i}">–</b><b id="f-tilt-${i}">–</b><b id="f-drift-${i}">–</b>`).join('')}`;
+  const names = flights.map(f => f.pilot.name);
+  $('title-name').textContent = 'Flying car · ' + (n > 1 ? names.join(' vs ') : names[0] + ' pilot');
+  $('title-text').textContent = n > 1
+    ? `Every car gets the identical random drop. Each is flown by its own System One model, which reads the same three plain-language flight reports and sets which of the 8 thrusters fire, how hard, and how the belly nozzles swivel. The only difference is the pilot.`
+    : `Dropped at a random height and attitude. ${names[0]} reads three plain-language flight reports several times a second and its answers set which of the 8 thrusters fire, how hard, and how the belly nozzles swivel.`;
+}
+
 function updatePanel() {
   const nowMs = performance.now();
-  stats.decisions = stats.decisions.filter(t => nowMs - t < 2000);
-  $('k-dps').textContent = (stats.decisions.length / 2).toFixed(1);
-  const L = [...stats.latency].sort((a, b) => a - b);
-  $('k-lat').textContent = L.length ? Math.round(L[L.length >> 1]) : '–';
-  const ages = ['roll', 'pitch', 'descent'].filter(k => mem[k]).map(k => car.t - mem[k].asked);
-  $('k-age').textContent = ages.length && !car.landed ? Math.round(1000 * Math.max(...ages)) : '–';
-  $('k-ok').textContent = stats.landed;
-  $('k-bad').textContent = stats.crashed;
-  $('err').style.display = stats.error ? 'block' : 'none';
-  $('err').textContent = stats.error ? 'Laya request failed: ' + stats.error : '';
+  let error = null;
+  flights.forEach((f, i) => {
+    const s = f.stats, set = (k, v) => { $(`k-${k}-${i}`).textContent = v; };
+    s.decisions = s.decisions.filter(t => nowMs - t < 2000);
+    set('dps', (s.decisions.length / 2).toFixed(1));
+    const L = [...s.latency].sort((a, b) => a - b);
+    set('lat', L.length ? Math.round(L[L.length >> 1]) : '–');
+    const ages = ['roll', 'pitch', 'descent'].filter(k => f.mem[k]).map(k => f.car.t - f.mem[k].asked);
+    set('age', ages.length && !f.car.landed ? Math.round(1000 * Math.max(...ages)) : '–');
+    set('ok', s.landed); set('bad', s.crashed); set('err', s.errors);
+    set('last', s.last ? `${s.last.ok ? '✓' : '✕'} ${s.last.vertical.toFixed(1)} m/s` : '–');
+    $(`k-last-${i}`).style.color = s.last ? (s.last.ok ? 'var(--good)' : 'var(--bad)') : '';
+    if (s.error) error = `${f.pilot.name}: ${s.error}`;
 
-  for (const k of Object.keys(QUESTIONS)) {
-    const el = $('q-' + k), p = mem[k]?.p;
-    el.querySelector('.rep').textContent = latest[k] ? '“' + latest[k] + '”' : '–';
-    const best = p ? Object.keys(p).reduce((a, b) => (p[a] > p[b] ? a : b)) : null;
-    for (const o of el.querySelectorAll('.opt')) {
-      const v = p ? p[o.dataset.o] : 0;
-      o.querySelector('i').style.width = Math.round(v * 100) + '%';
-      o.classList.toggle('top', o.dataset.o === best);
+    for (const k of Object.keys(QUESTIONS)) {
+      const el = $(`a-${k}-${i}`), p = f.mem[k]?.p;
+      const top = p ? best(p) : null;
+      el.querySelector('span').textContent = top ? `${OPTION_LABELS[k][top]} ${p[top].toFixed(2)}` : '–';
+      el.querySelector('i').style.width = top ? Math.round(p[top] * 100) + '%' : '0%';
+      el.title = f.latest[k] ? `“${f.latest[k]}”` : '';
     }
-  }
-  car.thr.forEach((s, i) => {
-    const pct = Math.round(s.level * 100);
-    $('tb' + i).style.width = pct + '%';
-    $('tp' + i).textContent = pct + '%';
-    $('tg' + i).textContent = `gimbal ${deg(s.a)}°, ${deg(s.b)}°`;
-    dots[i].setAttribute('fill', `rgba(62, 99, 221, ${0.06 + 0.94 * s.level})`);
-  });
+    f.car.thr.forEach((t, j) => f.dots[j].setAttribute('fill', rgba(f.colour, 0.06 + 0.94 * t.level)));
 
-  const alt = Math.max(0, lowestPoint(car));
-  $('f-alt').textContent = alt.toFixed(1) + ' m';
-  $('f-vy').textContent = car.vel.y.toFixed(1) + ' m/s';
-  $('f-tilt').textContent = Math.round(tiltDeg(car)) + '°';
-  $('f-drift').textContent = Math.hypot(car.vel.x, car.vel.z).toFixed(1) + ' m/s';
-  $('f-t').textContent = car.t.toFixed(1) + ' s';
+    const c = f.car;
+    $(`f-alt-${i}`).textContent = Math.max(0, lowestPoint(c)).toFixed(1) + ' m';
+    $(`f-vy-${i}`).textContent = c.vel.y.toFixed(1) + ' m/s';
+    $(`f-tilt-${i}`).textContent = Math.round(tiltDeg(c)) + '°';
+    $(`f-drift-${i}`).textContent = Math.hypot(c.vel.x, c.vel.z).toFixed(1) + ' m/s';
+  });
+  $('err').style.display = error ? 'block' : 'none';
+  $('err').textContent = error ? 'Request failed · ' + error : '';
+}
+
+function showResults() {   // banner: every pilot's touchdown, filled in as each car lands
+  $('banner').className = 'on';
+  $('banner').innerHTML = flights.map(f => {
+    const L = f.car.landed;
+    const res = !L ? '<span class="muted">…</span>' : L.ok
+      ? `<span style="color:var(--good)">✓ ${L.vertical.toFixed(1)} m/s, ${L.tilt.toFixed(0)}°</span>`
+      : `<span style="color:var(--bad)">✕ ${L.vertical.toFixed(1)} m/s, ${L.tilt.toFixed(0)}°</span>`;
+    return `<span style="color:${f.colour}">${f.pilot.name}</span> ${res}`;
+  }).join('<span class="sep">·</span>');
 }
 
 // ---------- controls ----------
 $('b-pause').onclick = () => { paused = !paused; $('b-pause').textContent = paused ? '▶ Resume' : '⏸ Pause'; };
-$('b-drop').onclick = newDrop;
+$('b-drop').onclick = () => newDrop();
 let isoLock = false;
 function setIso(on) {   // on by default: the camera holds the isometric angle and only zooms
   isoLock = on;
@@ -492,17 +553,16 @@ setIso(true);
 $('b-auto').onclick = () => { auto = !auto; $('b-auto').classList.toggle('on', auto); };
 const SAS_ON = TUNE.sas;
 $('b-sas').onclick = () => { TUNE.sas = TUNE.sas ? 0 : SAS_ON; $('b-sas').classList.toggle('on', !!TUNE.sas); };
-fetch('/api/config').then(r => r.json()).then(c => { $('k-model').textContent = c.model; }).catch(() => {});
 
 const stage = $('stage');
-let stageW = innerWidth, stageH = innerHeight;
+let stageW = innerWidth, stageH = innerHeight, sideW = 0, narrow = false;
 function fitCamera() {   // orthographic frustum from the eased view height and the stage shape
   const square = document.body.classList.contains('square');
   const vh = viewH * (square ? 1.3 : 1);   // the square's free area is narrower, so frame a little wider
   const aspect = stageW / stageH, perPx = vh / (camera.zoom * stageH);
-  const narrow = stageW <= 760 && !square;
-  // Centre the car in the free area: above the panel on phones, left of the side panel otherwise.
-  const sideW = narrow ? 0 : $('side').offsetWidth + 12;
+  narrow = stageW <= 760 && !square;
+  // Centre the cars in the free area: above the panel on phones, left of the side panel otherwise.
+  sideW = narrow ? 0 : $('side').offsetWidth + 12;
   const cx = (sideW / 2) * perPx, cy = narrow ? -vh * 0.2 / camera.zoom : 0;   // the frustum centre isn't scaled by zoom
   Object.assign(camera, { left: cx - vh * aspect / 2, right: cx + vh * aspect / 2, top: cy + vh / 2, bottom: cy - vh / 2 });
   camera.updateProjectionMatrix();
@@ -521,66 +581,95 @@ $('b-square').onclick = () => setSquare(!document.body.classList.contains('squar
 setSquare(new URLSearchParams(location.search).has('square'));
 
 // ---------- loop ----------
-const _off = new THREE.Vector3();
+const _off = new THREE.Vector3(), _mid = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3();
 let last = performance.now(), panelAt = 0, acc = 0;
-newDrop();
 
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000);
   last = t;
   if (!paused) {
-    if (!car.landed && inFlight < 3 && car.t - lastAsk >= 0.04) { lastAsk = car.t; decide(); }
-    fly(car, mem, car.t);
-    const wasLanded = !!car.landed;
-    for (acc += dt; acc >= DT; acc -= DT) step(car, DT);   // fixed 240 Hz steps, real time at any frame rate
-    if (car.landed && !wasLanded) {
-      const L = car.landed;
-      L.ok ? stats.landed++ : stats.crashed++;
-      $('banner').className = L.ok ? 'ok' : 'bad';
-      $('banner').textContent = L.ok
-        ? `✓ Landed at ${L.vertical.toFixed(1)} m/s, ${L.tilt.toFixed(0)}° tilt${L.onPad ? ', on the pad' : ''}`
-        : `✕ Crashed at ${L.vertical.toFixed(1)} m/s, ${L.tilt.toFixed(0)}° tilt (limits ${SAFE.vertical} m/s, ${SAFE.tilt}°)`;
-      dropAt = t + 3500;
+    for (const f of flights) {
+      if (!f.car.landed && f.inFlight < 3 && f.car.t - f.lastAsk >= 0.04 && t >= f.backoffUntil) { f.lastAsk = f.car.t; decide(f); }
+      fly(f.car, f.mem, f.car.t);
     }
+    const wasLanded = flights.map(f => !!f.car.landed);
+    for (acc += dt; acc >= DT; acc -= DT) for (const f of flights) step(f.car, DT);   // fixed 240 Hz steps, real time at any frame rate
+    flights.forEach((f, i) => {
+      if (f.car.landed && !wasLanded[i]) {
+        const L = f.car.landed;
+        L.ok ? f.stats.landed++ : f.stats.crashed++;
+        f.stats.last = L;
+        showResults();
+      }
+    });
+    if (!dropAt && (flights.every(f => f.car.landed) || t - roundStart > ROUND_TIMEOUT)) dropAt = t + 3500;
     if (dropAt && auto && t > dropAt) newDrop();
   }
 
-  // car pose + thrusters
-  carGroup.position.copy(car.pos);
-  carGroup.quaternion.copy(car.q);
-  car.thr.forEach((s, i) => {
-    const v = visuals[i];
-    nozzleQuat(s.a, s.b, v.gimbal.quaternion);
-    const len = Math.max(0.001, s.level * v.len * (0.9 + Math.random() * 0.2));
-    v.flame.scale.set(1, len, 1); v.core.scale.set(1, len * 0.6, 1);
-    v.flame.visible = v.core.visible = s.level > 0.02;
-  });
+  // car poses + thrusters
+  for (const f of flights) {
+    const m = f.model, c = f.car;
+    m.group.position.copy(c.pos); m.group.position.x += f.drawOffset;
+    m.group.quaternion.copy(c.q);
+    c.thr.forEach((s, i) => {
+      const v = m.visuals[i];
+      nozzleQuat(s.a, s.b, v.gimbal.quaternion);
+      const len = Math.max(0.001, s.level * v.len * (0.9 + Math.random() * 0.2));
+      v.flame.scale.set(1, len, 1); v.core.scale.set(1, len * 0.6, 1);
+      v.flame.visible = v.core.visible = s.level > 0.02;
+    });
+    const alt = Math.max(0, lowestPoint(c)), footY = 0.16;   // just above the pad slab
+    m.dropLine.geometry.setFromPoints([m.group.position.clone(), new THREE.Vector3(m.group.position.x, footY, c.pos.z)]);
+    m.dropLine.computeLineDistances();
+    m.ring.position.set(m.group.position.x, footY, c.pos.z);
+    m.dropLine.visible = m.ring.visible = !c.landed;
+    const haloSize = 6 + alt * 0.12;
+    m.halo.position.set(c.pos.x, 0.008, c.pos.z); m.halo.scale.set(haloSize, haloSize, 1);
+    m.halo.material.opacity = 0.32 * THREE.MathUtils.clamp(1 - alt / 90, 0.15, 1) / flights.length;
+  }
 
-  // follow camera: move the orbit target with the car, keep the user's view offset
-  _off.copy(car.pos).sub(controls.target).multiplyScalar(Math.min(1, dt * 4));
+  // follow camera: move the orbit target to the middle of the cars, keep the user's view offset
+  _mid.set(0, 0, 0); for (const f of flights) _mid.add(f.car.pos); _mid.divideScalar(flights.length);
+  _off.copy(_mid).sub(controls.target).multiplyScalar(Math.min(1, dt * 4));
   controls.target.add(_off); camera.position.add(_off);
   controls.update();
-  sun.position.copy(car.pos).addScaledVector(KEY, 80);
-  sun.target.position.copy(car.pos);
-  // auto-zoom: about 18 m of view near the ground, widening to about 50 m high up, so the pad comes into frame
-  const altNow = Math.max(0, lowestPoint(car));
-  viewH += (THREE.MathUtils.clamp(18 + 0.3 * altNow, 18, 50) - viewH) * Math.min(1, dt * 1.5);
+  sun.position.copy(_mid).addScaledVector(KEY, 80);
+  sun.target.position.copy(_mid);
+  // auto-zoom: about 18 m of view near the ground, widening to about 50 m high up, and wide enough for every car
+  const altNow = Math.max(...flights.map(f => Math.max(0, lowestPoint(f.car))));
+  let want = THREE.MathUtils.clamp(18 + 0.3 * altNow, 18, 50);
+  if (flights.length > 1) {   // screen-space spread of the cars, in the camera's view plane
+    camera.updateMatrixWorld();
+    let dx = 0, dy = 0;
+    for (const f of flights) for (const g of flights) {
+      _a.copy(f.car.pos).applyMatrix4(camera.matrixWorldInverse); _b.copy(g.car.pos).applyMatrix4(camera.matrixWorldInverse);
+      dx = Math.max(dx, Math.abs(_a.x - _b.x)); dy = Math.max(dy, Math.abs(_a.y - _b.y));
+    }
+    const freeAspect = Math.max(0.3, (stageW - sideW) / stageH);
+    want = Math.max(want, dy + 10, (dx + 10) / freeAspect);
+  }
+  viewH += (Math.min(want, 160) - viewH) * Math.min(1, dt * 1.5);
   fitCamera();
-
-  const footY = 0.16;   // just above the pad slab
-  dropLine.geometry.setFromPoints([car.pos.clone(), new THREE.Vector3(car.pos.x, footY, car.pos.z)]);
-  dropLine.computeLineDistances();
-  ring.position.set(car.pos.x, footY, car.pos.z);
-  dropLine.visible = ring.visible = !car.landed;
-  const haloSize = 6 + altNow * 0.12;
-  halo.position.set(car.pos.x, 0.008, car.pos.z); halo.scale.set(haloSize, haloSize, 1);
-  halo.material.opacity = 0.32 * THREE.MathUtils.clamp(1 - altNow / 90, 0.15, 1);
 
   renderer.render(scene, camera);
   if (t - panelAt > 100) { panelAt = t; updatePanel(); }
   requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+
+// ---------- start: pick the pilots, then fly ----------
+const configured = await fetch('/api/config').then(r => r.json()).then(c => c.pilots || [{ id: 'ollaya', name: 'Laya', model: c.model }]).catch(() => []);
+const wanted = (new URLSearchParams(location.search).get('pilots') || '').split(',').map(s => s.trim()).filter(Boolean);
+const chosen = (wanted.length ? wanted.map(id => configured.find(p => p.id === id)).filter(Boolean) : configured).slice(0, 4);
+if (!chosen.length) {
+  $('err').style.display = 'block';
+  $('err').textContent = 'No pilots: add <NAME>_URL, <NAME>_API_KEY and <NAME>_MODEL to .env and restart server.py.';
+} else {
+  chosen.forEach((p, i) => flights.push(makeFlight(p, i, chosen.length)));
+  buildPanel();
+  resize();
+  newDrop();
+  requestAnimationFrame(frame);
+}
 </script>
 </body>
 </html>

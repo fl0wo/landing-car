@@ -20,6 +20,8 @@ A flying car dropped at a random height and attitude, landed by **Laya** (Ollaya
 
 3. Open **http://localhost:8000/car**. Use `http://localhost:8000/car?square` for a square frame to record.
 
+**More pilots:** every `<NAME>_URL` + `<NAME>_API_KEY` (+ `<NAME>_MODEL`) in `.env` is a pilot, e.g. `JEV_URL="https://api.typesafe.ai"`, `JEV_API_KEY`, `JEV_MODEL="jev-latest"`. All of them fly the identical drop at once, overlapping on one pad; pick some with `/car?pilots=ollaya,jev`.
+
 The page loads three.js from a CDN, so the browser needs internet access.
 
 ## Test (optional)
@@ -28,4 +30,5 @@ The page loads three.js from a CDN, so the browser needs internet access.
 npm install
 npm run flight-test             # 40 headless drops replaying recorded Laya answers
 MODE=laya npm run flight-test   # real Laya, real time
+MODE=laya PILOT=jev npm run flight-test   # any pilot from .env
 ```

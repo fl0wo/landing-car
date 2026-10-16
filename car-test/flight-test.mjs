@@ -1,7 +1,7 @@
 // Headless flight test for the Laya-piloted flying car.
 //   MODE=table (default): Laya's recorded answers, replayed with real recorded request latencies, simulated time.
 //   MODE=ideal: perfect answers, same latency replay.
-//   MODE=laya: real Laya over the LAN, real time.
+//   MODE=laya: a real pilot, real time (PILOT=<id> from .env: ollaya by default, or jev, ...).
 // Options: N, SEED, WRONG (chance an attitude answer is flipped), SLOW (latency multiplier), TUNE (JSON), QUIET, LOG.
 import fs from 'fs';
 import { createCar, spawn, step, lowestPoint, tiltDeg } from '../web/car/sim.js';
@@ -31,7 +31,7 @@ function answer(key, rep) {
   if (key !== 'descent' && noise() < WRONG) { const [a, b, c] = Object.keys(p); p = { [a]: p[b], [b]: p[a], [c]: p[c] }; }
   return p;
 }
-const post = body => fetch('http://localhost:8000/api/systemone', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
+const post = body => fetch(`http://localhost:${env.PORT || 8000}/api/systemone?pilot=${encodeURIComponent(env.PILOT || '')}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
 
 const DT = 1 / 240, LIMIT = 90, FLY_HZ = 60;
 async function episode(i) {
@@ -77,4 +77,4 @@ async function episode(i) {
 
 let ok = 0;
 for (let i = 0; i < N; i++) ok += await episode(i);
-console.log(`${MODE} wrong=${WRONG} slow=x${SLOW}${env.TUNE ? ' ' + env.TUNE : ''}: ${ok}/${N} landed safely`);
+console.log(`${MODE}${MODE === 'laya' && env.PILOT ? ' pilot=' + env.PILOT : ''} wrong=${WRONG} slow=x${SLOW}${env.TUNE ? ' ' + env.TUNE : ''}: ${ok}/${N} landed safely`);
